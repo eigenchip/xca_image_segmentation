@@ -123,7 +123,7 @@ dca1 = DCA1(datadir=dca1_dir, augment=True)
 
 """#Visualize Input/Output"""
 
-indices = [127, 22]
+indices = np.arange(0, 133, 1)
 
 for i in indices:
   print(f"IMAGE i={i}")
@@ -143,7 +143,7 @@ for i in indices:
 
 """### Intensity Distribution before/after Filtering"""
 
-indices = [127, 22]
+indices = [59, 89, 127, 22]
 
 for i in indices:
   print(f"IMAGE i={i}")
@@ -321,8 +321,10 @@ def fgd_histo(model, valoader, indices):
         plt.figure(figsize=(8, 3))
         gs = GridSpec(1, 3, width_ratios=[1, 2, 0.1])     # source: https://stackoverflow.com/questions/66880744/changing-the-gridspec-properties-after-generating-the-subplots
         ax1 = plt.subplot(gs[0])
-        ax1.imshow(fgdprobs_stretched, cmap='gray', vmin=0, vmax=1)
+        im = ax1.imshow(fgdprobs_stretched, cmap='viridis', vmin=0, vmax=1)
         ax1.axis('off')
+        cbar_ax = plt.subplot(gs[2])
+        plt.colorbar(im, cax=cbar_ax)
         ax2 = plt.subplot(gs[1])
         ax2.hist(fgdprobs[i].flatten(), bins=100, color='blue', alpha=0.5, edgecolor='black')
         ax2.set_yscale('log')
@@ -340,7 +342,7 @@ def fgd_histo(model, valoader, indices):
       # if ii not in indices to plot, continue
       ii += 1
 
-val_indices = np.arange(0, 3, 1)
+val_indices = np.arange(0,55,1)
 fgd_histo(model, val_loader, val_indices)
 
 """#Segmentation: Otsu's method"""
@@ -376,7 +378,7 @@ def segment(model, val_loader):
       plt.title('Ground truth')
       plt.axis('off')
       plt.subplot(1, 3, 2)
-      plt.imshow(fgdprobs[i], cmap='gray', vmin=0, vmax=1)
+      plt.imshow(fgdprobs[i], cmap='viridis', vmin=0, vmax=1)
       plt.title('Fgd probs')
       plt.axis('off')
       plt.subplot(1, 3, 3)
