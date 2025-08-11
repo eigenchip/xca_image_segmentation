@@ -1,99 +1,103 @@
-# xca_image_segmentation
-Automated X-ray coronary artery image segmentation using a shallow multilayer perceptron.
-
-
 # XCA Image Segmentation
 
-Segmentation of X-ray Coronary Angiography (XCA) images for vessel detection and analysis using classical image processing and deep learning methods.
-
----
-
 ## Theory
-X-ray Coronary Angiography (XCA) visualizes coronary vessels by injecting contrast agents. Vessel segmentation enables automated stenosis detection, quantitative vessel analysis, and treatment planning.
+This project targets **2D X-ray Coronary Angiography (XCA) image segmentation** using a shallow Multi-Layer Perceptron (MLP) aided by morphological preprocessing.
 
-**Mathematical basis**  
-- **Frangi Vesselness Filter**:  
-  Uses eigenvalues of the Hessian matrix \((\lambda_1, \lambda_2)\) to detect tubular structures:  
+**Frangi Vesselness Filter**  
+- Relies on the **Hessian matrix** of second-order intensity derivatives:
   \[
-  V(x) =
+  H =
+  \begin{pmatrix}
+  I_{xx} & I_{xy} \\
+  I_{yx} & I_{yy}
+  \end{pmatrix}
+  \]
+- Eigenvalues \(|\lambda_1| < |\lambda_2|\) characterize curvature; \(\lambda_2 > 0\) implies non-vessel pixels.
+- Vesselness:
+  \[
+  V(\sigma) =
   \begin{cases}
-  0, & \lambda_2 > 0 \\
-  \exp\left(-\frac{R_B^2}{2\beta^2}\right) \cdot
-  \left(1 - \exp\left(-\frac{S^2}{2\gamma^2}\right)\right), & \text{otherwise}
+  0 & \lambda_2 > 0 \\
+  e^{-\frac{R^2}{2\alpha^2}}\left( 1 - e^{-\frac{S^2}{2\beta^2}} \right) & \text{otherwise}
   \end{cases}
-  \]  
-  where \( R_B = \frac{|\lambda_1|}{|\lambda_2|} \), \( S = \sqrt{\lambda_1^2 + \lambda_2^2} \).
+  \]
+  with \( R = |\lambda_1|/|\lambda_2| \) and \( S = \sqrt{\lambda_1^2 + \lambda_2^2} \).
 
-- **Otsu Thresholding**: Selects the optimal threshold by maximizing inter-class variance.
-- **Morphological Operations**: Removes noise and small isolated components.
+**Multiscale approach**:  
+\[
+V_\sigma(x,y) = \max_{\sigma} V(x,y,\sigma)
+\]
+selects the optimal vessel width per pixel.
+
+**Segmentation** uses **Otsu's adaptive threshold**:
+\[
+\tau^* = \arg\max_{\tau} \; w_1(\tau) w_2(\tau) \left[ \mu_1(\tau) - \mu_2(\tau) \right]^2
+\]
+maximizing inter-class variance between background and vessel classes.
 
 ---
 
 ## Methodology
-1. **Preprocessing**
-   - Contrast enhancement
-   - Multi-scale Frangi filter
-   - Removal of small objects (< 5000 px)
-
-2. **Segmentation**
-   - Otsu global thresholding
-   - Morphological cleanup (closing, opening)
-
-3. **Model Training**
-   - PyTorch custom dataset loader
-   - K-fold cross-validation
-   - Mixed-precision training for speed
-
-4. **Evaluation**
-   - ROC curve, AUC score
-   - Dice coefficient, pixel accuracy
+1. **Data Augmentation** – Horizontal flips to improve robustness.
+2. **Preprocessing**:
+   - Frangi vesselness filter at multiple \(\sigma\) values (1.8–4.0).
+   - Small-object removal (min size = 5000 px) to suppress artifacts.
+3. **MLP Architecture**:
+   - Input: single pixel intensity
+   - 2 hidden layers, 9 neurons each (ReLU activation)
+   - Output: softmax over background/foreground
+   - Loss: Weighted Binary Cross-Entropy to address class imbalance
+4. **Postprocessing**:
+   - Otsu thresholding of MLP foreground probabilities for final segmentation.
 
 ---
 
 ## Datasets
-- **Source**: Public XCA datasets with original frames and vessel masks.
-- **Structure**:
-
-
-- **Labels**: Binary ground-truth vessel masks.
+- **DCA1 – Database of X-ray Coronary Angiograms**  
+  - 130 grayscale images, 300×300 px  
+  - Expert-annotated ground truths  
+  - [Dataset link](http://personal.cimat.mx:8181/~ivan.cruz/DB_Angiograms.html)
 
 ---
 
 ## Benchmarking
-| Method                     | ROC-AUC | Dice  |
-|----------------------------|--------:|------:|
-| Frangi + Otsu + Morphology | 0.87    | 0.75  |
-| CNN (ours)                 | 0.94    | 0.82  |
+Metrics:
+- **AUROC** – Area under ROC curve
+- **Dice coefficient** – Overlap measure robust to class imbalance:
+  \[
+  \text{Dice} = \frac{2|A \cap B|}{|A| + |B|}
+  \]
+- **IoU (Jaccard Index)**
+- **Sensitivity**, **Specificity**, **Precision**
+- **SNR** of predicted foreground
 
 ---
 
 ## Results
-- **Classical filtering** successfully enhances vessel visibility but may miss faint vessels.
-- **Deep learning** improves robustness to noise and illumination changes.
+| Metric       | Filtered | Unfiltered |
+|--------------|----------|------------|
+| AUROC        | 0.948    | 0.760      |
+| Dice         | 0.61     | 0.15       |
+| Sensitivity  | 0.79     | 0.21       |
+| Specificity  | 0.95     | 0.91       |
+| Precision    | 0.51     | 0.15       |
+| IoU          | 0.44     | 0.10       |
 
-*(Insert sample input/output images here)*
-
----
-
-## Future Work
-- Integrate U-Net architecture
-- Explore attention-based segmentation
-- Apply domain adaptation for other angiography modalities
-- Real-time deployment pipeline
+**Key findings**:
+- Preprocessing improves Dice by ×4, IoU by ×4.4, and AUROC by +0.2.
+- Frangi parameters critically affect vessel enhancement vs. noise amplification.
+- Otsu effectively removes residual noise but cannot restore vessel connectivity.
 
 ---
 
 ## Tools
-- **Languages**: Python 3
-- **Libraries**:  
-- `scikit-image`  
-- `torch`  
-- `scikit-learn`  
-- `matplotlib`
+- **Language**: Python 3.10
+- **Libraries**: NumPy, scikit-image, Matplotlib, PyTorch
+- **Environment**: Google Colab
 
 ---
 
 ## References
-1. Frangi, A. F., et al. "Multiscale vessel enhancement filtering." *MICCAI*, 1998.  
-2. Ronneberger, O., et al. "U-Net: Convolutional Networks for Biomedical Image Segmentation." *MICCAI*, 2015.  
-3. Otsu, N. "A threshold selection method from gray-level histograms." *IEEE Trans. Sys. Man. Cyber.*, 1979.
+1. Frangi, A. F., et al. "Multiscale Vessel Enhancement Filtering." MICCAI 1998.  
+2. Cervantes-Sanchez, F., et al. "Automatic Segmentation of Coronary Arteries in X-ray Angiograms using Multiscale Analysis and Artificial Neural Networks." Applied Sciences, 2019.  
+3. [DCA1 Dataset](http://personal.cimat.mx:8181/~ivan.cruz/DB_Angiograms.html)
