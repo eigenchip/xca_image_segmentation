@@ -5,27 +5,19 @@ We segment 2D X-ray Coronary Angiography (XCA) images using a shallow MLP, guide
 
 **Frangi vesselness (Hessian-based):**  
 The Hessian of image intensity is
-$$
-H=\begin{pmatrix} I_{xx} & I_{xy} \\ I_{yx} & I_{yy} \end{pmatrix},
-$$
+$H=\begin{pmatrix} I_{xx} & I_{xy} \\ I_{yx} & I_{yy} \end{pmatrix},$
 with eigenvalues ordered $|\lambda_1|<|\lambda_2|$. Vesselness at scale $\sigma$ is
-$$
-V(\sigma)=
+$V(\sigma)=
 \begin{cases}
 0, & \lambda_2>0 \\
 \exp\!\left(-\frac{R^2}{2\alpha^2}\right)\!\left(1-\exp\!\left(-\frac{S^2}{2\beta^2}\right)\right), & \text{otherwise}
-\end{cases}
-$$
+\end{cases}$
 where $R=\tfrac{|\lambda_1|}{|\lambda_2|}$ distinguishes tubes vs. blobs, and $S=\sqrt{\lambda_1^2+\lambda_2^2}$ penalizes textured background. Multiscale selection picks
-$$
-V_\sigma(x,y)=\max_{\sigma} V(x,y,\sigma).
-$$
+$V_\sigma(x,y)=\max_{\sigma} V(x,y,\sigma).$
 
 **Adaptive thresholding (Otsu):**  
 Maximize inter-class variance to pick $\tau^\*$:
-$$
-\tau^\*=\arg\max_{\tau}\; w_1(\tau)w_2(\tau)\,[\mu_1(\tau)-\mu_2(\tau)]^2.
-$$
+$\tau^\*=\arg\max_{\tau}\; w_1(\tau)w_2(\tau)\,[\mu_1(\tau)-\mu_2(\tau)]^2.$
 
 ---
 
