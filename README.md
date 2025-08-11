@@ -1,103 +1,81 @@
 # XCA Image Segmentation
 
 ## Theory
-This project targets **2D X-ray Coronary Angiography (XCA) image segmentation** using a shallow Multi-Layer Perceptron (MLP) aided by morphological preprocessing.
+We segment 2D X-ray Coronary Angiography (XCA) images using a shallow MLP, guided by morphology-based preprocessing.
 
-**Frangi Vesselness Filter**  
-- Relies on the **Hessian matrix** of second-order intensity derivatives:
-  \[
-  H =
-  \begin{pmatrix}
-  I_{xx} & I_{xy} \\
-  I_{yx} & I_{yy}
-  \end{pmatrix}
-  \]
-- Eigenvalues \(|\lambda_1| < |\lambda_2|\) characterize curvature; \(\lambda_2 > 0\) implies non-vessel pixels.
-- Vesselness:
-  \[
-  V(\sigma) =
-  \begin{cases}
-  0 & \lambda_2 > 0 \\
-  e^{-\frac{R^2}{2\alpha^2}}\left( 1 - e^{-\frac{S^2}{2\beta^2}} \right) & \text{otherwise}
-  \end{cases}
-  \]
-  with \( R = |\lambda_1|/|\lambda_2| \) and \( S = \sqrt{\lambda_1^2 + \lambda_2^2} \).
+**Frangi vesselness (Hessian-based):**  
+The Hessian of image intensity is
+$$
+H=\begin{pmatrix} I_{xx} & I_{xy} \\ I_{yx} & I_{yy} \end{pmatrix},
+$$
+with eigenvalues ordered $|\lambda_1|<|\lambda_2|$. Vesselness at scale $\sigma$ is
+$$
+V(\sigma)=
+\begin{cases}
+0, & \lambda_2>0 \\
+\exp\!\left(-\frac{R^2}{2\alpha^2}\right)\!\left(1-\exp\!\left(-\frac{S^2}{2\beta^2}\right)\right), & \text{otherwise}
+\end{cases}
+$$
+where $R=\tfrac{|\lambda_1|}{|\lambda_2|}$ distinguishes tubes vs. blobs, and $S=\sqrt{\lambda_1^2+\lambda_2^2}$ penalizes textured background. Multiscale selection picks
+$$
+V_\sigma(x,y)=\max_{\sigma} V(x,y,\sigma).
+$$
 
-**Multiscale approach**:  
-\[
-V_\sigma(x,y) = \max_{\sigma} V(x,y,\sigma)
-\]
-selects the optimal vessel width per pixel.
-
-**Segmentation** uses **Otsu's adaptive threshold**:
-\[
-\tau^* = \arg\max_{\tau} \; w_1(\tau) w_2(\tau) \left[ \mu_1(\tau) - \mu_2(\tau) \right]^2
-\]
-maximizing inter-class variance between background and vessel classes.
+**Adaptive thresholding (Otsu):**  
+Maximize inter-class variance to pick $\tau^\*$:
+$$
+\tau^\*=\arg\max_{\tau}\; w_1(\tau)w_2(\tau)\,[\mu_1(\tau)-\mu_2(\tau)]^2.
+$$
 
 ---
 
 ## Methodology
-1. **Data Augmentation** – Horizontal flips to improve robustness.
-2. **Preprocessing**:
-   - Frangi vesselness filter at multiple \(\sigma\) values (1.8–4.0).
-   - Small-object removal (min size = 5000 px) to suppress artifacts.
-3. **MLP Architecture**:
-   - Input: single pixel intensity
-   - 2 hidden layers, 9 neurons each (ReLU activation)
-   - Output: softmax over background/foreground
-   - Loss: Weighted Binary Cross-Entropy to address class imbalance
-4. **Postprocessing**:
-   - Otsu thresholding of MLP foreground probabilities for final segmentation.
+1. **Data augmentation:** horizontal flips.  
+2. **Preprocessing:** multiscale Frangi ($\sigma\in[1.8,4.0]$; tuned $\alpha=1,\beta=1,\gamma=0.3$) + small-object removal (min size $\approx 5000$ px).  
+3. **MLP (pixelwise):** input = single pixel intensity → 2 hidden layers (9 ReLU units each) → softmax (bg/fg).  
+   Weighted BCE handles class imbalance:
+   $$
+   \mathcal{L}=-\frac{1}{N}\sum_{i=1}^N \big[w_f\,y_i\log p_i + w_b(1-y_i)\log(1-p_i)\big],\quad w_f=\tfrac{1}{f},\; w_b=\tfrac{1}{b}.
+   $$
+4. **Postprocessing:** Otsu on foreground probabilities to obtain final mask.  
+5. **Validation:** 5-fold CV; separate hold-out test set.
 
 ---
 
 ## Datasets
-- **DCA1 – Database of X-ray Coronary Angiograms**  
-  - 130 grayscale images, 300×300 px  
-  - Expert-annotated ground truths  
-  - [Dataset link](http://personal.cimat.mx:8181/~ivan.cruz/DB_Angiograms.html)
+- **DCA1** (X-ray Coronary Angiograms): 130 grayscale images (300×300) with expert vessel masks.  
+  http://personal.cimat.mx:8181/~ivan.cruz/DB_Angiograms.html
 
 ---
 
 ## Benchmarking
-Metrics:
-- **AUROC** – Area under ROC curve
-- **Dice coefficient** – Overlap measure robust to class imbalance:
-  \[
-  \text{Dice} = \frac{2|A \cap B|}{|A| + |B|}
-  \]
-- **IoU (Jaccard Index)**
-- **Sensitivity**, **Specificity**, **Precision**
-- **SNR** of predicted foreground
+Metrics: AUROC, Dice $=\tfrac{2|A\cap B|}{|A|+|B|}$, IoU, Sensitivity, Specificity, Precision, and SNR of predicted foreground.
 
 ---
 
 ## Results
-| Metric       | Filtered | Unfiltered |
-|--------------|----------|------------|
-| AUROC        | 0.948    | 0.760      |
-| Dice         | 0.61     | 0.15       |
-| Sensitivity  | 0.79     | 0.21       |
-| Specificity  | 0.95     | 0.91       |
-| Precision    | 0.51     | 0.15       |
-| IoU          | 0.44     | 0.10       |
+**Effect of preprocessing (hold-out averages):**
 
-**Key findings**:
-- Preprocessing improves Dice by ×4, IoU by ×4.4, and AUROC by +0.2.
-- Frangi parameters critically affect vessel enhancement vs. noise amplification.
-- Otsu effectively removes residual noise but cannot restore vessel connectivity.
+| Metric      | With Frangi+cleanup | Raw (no preprocessing) |
+|-------------|----------------------|-------------------------|
+| AUROC       | 0.9478               | 0.7597                  |
+| Dice        | 0.61                 | 0.15                    |
+| Sensitivity | 0.79                 | 0.21                    |
+| Specificity | 0.95                 | 0.91                    |
+| Precision   | 0.51                 | 0.15                    |
+| IoU         | 0.44                 | 0.10                    |
+
+**Takeaways:** preprocessing is decisive—improves Dice ×4, IoU ×4.4, AUROC +0.2; Otsu removes much of the residual noise but cannot restore lost connectivity (consider tree morphology/region growing).
 
 ---
 
 ## Tools
-- **Language**: Python 3.10
-- **Libraries**: NumPy, scikit-image, Matplotlib, PyTorch
-- **Environment**: Google Colab
+- **Python 3.10** on Google Colab  
+- **NumPy, scikit-image, Matplotlib, PyTorch**  
 
 ---
 
 ## References
-1. Frangi, A. F., et al. "Multiscale Vessel Enhancement Filtering." MICCAI 1998.  
-2. Cervantes-Sanchez, F., et al. "Automatic Segmentation of Coronary Arteries in X-ray Angiograms using Multiscale Analysis and Artificial Neural Networks." Applied Sciences, 2019.  
-3. [DCA1 Dataset](http://personal.cimat.mx:8181/~ivan.cruz/DB_Angiograms.html)
+- Frangi, A. F., et al. *Multiscale Vessel Enhancement Filtering*. MICCAI, 1998.  
+- Cervantes-Sánchez, F., et al. *Automatic Segmentation of Coronary Arteries in X-ray Angiograms using Multiscale Analysis and Artificial Neural Networks*. *Applied Sciences*, 2019.  
+- DCA1 dataset: http://personal.cimat.mx:8181/~ivan.cruz/DB_Angiograms.html
