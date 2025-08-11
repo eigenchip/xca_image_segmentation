@@ -5,7 +5,9 @@ Goal: segment coronary vessels in 2D X-ray coronary angiography (XCA) using a sh
 
 **Hessian & Frangi vesselness**
 - Hessian (second-order spatial derivatives):
-$\begin{bmatrix}A1 &A2 & A3\\A4 & A5 & A6 \end{bmatrix}$
+```math
+\begin{bmatrix}X\\Y\end{bmatrix}
+```
 $H = \begin{bmatrix} I_{xx} & I_{xy} \\\ I_{yx} & I_{yy} \end{bmatrix}$
 - Let $|\lambda_1| < |\lambda_2|$. Define $R = \frac{|\lambda_1|}{|\lambda_2|}$ and $S = \sqrt{\lambda_1^2 + \lambda_2^2}$.
 - Vesselness at scale $\sigma$:
