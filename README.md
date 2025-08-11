@@ -50,7 +50,7 @@ Finds optimal threshold by maximizing inter-class variance:
 
 Where `w_1`, `w_2` are class probabilities and `μ_1`, `μ_2` are class means.
 
-## Methodology
+### Methodology
 
 1. **Data Augmentation**: Horizontal flipping for robustness
 2. **Preprocessing**: 
@@ -59,37 +59,36 @@ Where `w_1`, `w_2` are class probabilities and `μ_1`, `μ_2` are class means.
 3. **Training**: 5-fold cross-validation with 212 training samples
 4. **Segmentation**: Otsu's method applied to predicted foreground probabilities
 
-## Dataset
+### Dataset
 
 **DCA1 Database**: 130 grayscale X-ray coronary angiograms (300×300 pixels) with expert-labeled ground truth from the Mexican Social Security Institute Cardiology Department.
 
 - Training: 212 samples
-- Validation: 56 samples (hold-out)
+- Validation: 56 samples
 - Class imbalance: Vessel pixels comprise 15-19% of total pixels
 
-## Benchmarking
+### Benchmarking
+| Metric       | Filtered | Unfiltered |
+|--------------|----------|------------|
+| AUROC        | 0.948    | 0.760      |
+| Dice         | 0.61     | 0.15       |
+| Sensitivity  | 0.79     | 0.21       |
+| Specificity  | 0.95     | 0.91       |
+| Precision    | 0.51     | 0.15       |
+| IoU          | 0.44     | 0.10       |
 
-### Performance Metrics
-- **AUROC**: 0.9478 (filtered) vs 0.7597 (unfiltered)
-- **Dice Coefficient**: 0.61 (filtered) vs 0.15 (unfiltered) 
-- **Sensitivity**: 0.79 (filtered) vs 0.21 (unfiltered)
-- **Specificity**: 0.95 (filtered) vs 0.91 (unfiltered)
-- **IoU**: 0.44 (filtered) vs 0.10 (unfiltered)
-
-### Key Findings
+### Results
 - Preprocessing improved Dice score by 4x and sensitivity by 3.8x
 - Otsu thresholds: 0.10-0.14 (filtered) vs 10⁻³-10⁻² (unfiltered)
 - Performance comparable to Cervantes et al. with much simpler architecture
 
-## Tools
-
+### Tools
 - **Python 3.10.12** on Google Colab
 - **Hardware**: Intel Core i5-1135G7 (2.40GHz, 16GB RAM)
 - **Libraries**: scikit-image for morphological operations
 - **Optimization**: Adam optimizer with 0.001 learning rate
 
-## References
-
+### References
 1. Young, I. (1983). Image analysis and mathematical morphology. *Cytometry*, 4, 184-185.
 2. Frangi, A. et al. (2000). Multiscale Vessel Enhancement Filtering. *Medical Image Computing and Computer-Assisted Intervention*, 1496.
 3. Luo, Y. & Sun, L. (2023). Digital subtraction angiography image segmentation based on multiscale Hessian matrix. *Journal of Radiation Research and Applied Sciences*, 16(3).
