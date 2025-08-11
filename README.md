@@ -83,10 +83,9 @@ Where `w_1`, `w_2` are class probabilities and `μ_1`, `μ_2` are class means.
 - Performance comparable to Cervantes et al. with much simpler architecture
 
 ### Tools
-- **Python 3.10.12** on Google Colab
-- **Hardware**: Intel Core i5-1135G7 (2.40GHz, 16GB RAM)
-- **Libraries**: scikit-image for morphological operations
-- **Optimization**: Adam optimizer with 0.001 learning rate
+- Python 3.10.12 on Google Colab
+- Intel Core i5-1135G7 (2.40GHz, 16GB RAM)
+- NumPy, scikit-image, Matplotlib, PyTorch
 
 ### References
 1. Young, I. (1983). Image analysis and mathematical morphology. *Cytometry*, 4, 184-185.
